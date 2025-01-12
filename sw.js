@@ -4,7 +4,7 @@ self.addEventListener('install', (event) => {
     caches.open('my-cache-v1').then((cache) => {
       console.log('Сайт кеширован');
       return cache.addAll([
-        '/offline.html'  // Только страница оффлайн
+        '/offline.html'  // Кэшируем только страницу оффлайн
       ]).catch((err) => {
         console.error('Ошибка при кешировании:', err);
       });
@@ -13,10 +13,16 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Проверяем, является ли запрос запросом формы (например, POST-запросы)
+  if (event.request.method === 'POST') {
+    // Не обрабатываем POST-запросы через сервис-воркер, чтобы они не приводили к ошибке
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Если запрос успешный, возвращаем ответ
+        // Если запрос успешный, возвращаем его
         if (response && response.status === 200) {
           return response;
         }
@@ -54,5 +60,4 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
-
 
