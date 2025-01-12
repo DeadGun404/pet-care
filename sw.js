@@ -58,6 +58,7 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+return caches.match(event.request) || caches.match('/offline.html');
 
   );
 });
