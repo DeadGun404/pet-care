@@ -11,7 +11,8 @@ self.addEventListener('install', (event) => {
         cache.add('/assets/js/script.js'),
         cache.add('/assets/images/icon-192x192.png'),
         cache.add('/assets/images/icon-512x512.png'),
-        cache.add('/manifest.json')
+        cache.add('/manifest.json'),
+        cache.add('/offline.html')  // Добавляем страницу оффлайн-режима
       ]).catch((err) => {
         console.error('Ошибка при кешировании:', err);
       });
@@ -19,14 +20,25 @@ self.addEventListener('install', (event) => {
   );
 });
 
-
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // Если запрос есть в кеше, возвращаем его
       if (cachedResponse) {
-        return cachedResponse;  // Возвращаем кешированный ответ
+        return cachedResponse;
       }
-      return fetch(event.request);  // Если нет в кеше — запрашиваем сеть
+
+      // Если нет в кеше, пробуем запросить ресурс из сети
+      return fetch(event.request).then((response) => {
+        // Если ответ не удачный (не 200), проверяем кеш
+        if (!response || response.status !== 200) {
+          return caches.match(event.request);
+        }
+        return response;
+      }).catch(() => {
+        // В случае ошибки сети возвращаем оффлайн-страницу или кешированный ответ
+        return caches.match(event.request) || caches.match('/offline.html');
+      });
     })
   );
 });
@@ -38,7 +50,8 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (!cacheWhitelist.includes(cacheName)) {
-            return caches.delete(cacheName);  // Удаляем устаревшие кеши
+            // Удаляем устаревшие кеши
+            return caches.delete(cacheName);
           }
         })
       );
@@ -46,37 +59,5 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (!response || response.status !== 200) {
-          // Если ответ не удачный, проверяем кеш
-          return caches.match(event.request);
-        }
-        return response;
-      })
-      .catch(error => {
-        console.error('Ошибка сети:', error);
-        // В случае ошибки сети возвращаем кешированный ответ или страницу ошибки
-        return caches.match(event.request) || caches.match('/offline.html');
-      })
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Проверяем статус ответа
-        if (!response || response.status !== 200) {
-          return caches.match(event.request);
-        }
-        return response;
-      })
-      .catch(() => {
-        // Если нет сети, возвращаем оффлайн-страницу
-        return caches.match('/offline.html');
-      })
   );
 });
