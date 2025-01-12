@@ -3,16 +3,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open('my-cache-v1').then((cache) => {
       console.log('Сайт кеширован');
-      return Promise.all([
-        cache.add('/'),
-        cache.add('/index.html'),
-        cache.add('/register.html'),
-        cache.add('/assets/css/styles.css'),
-        cache.add('/assets/js/script.js'),
-        cache.add('/assets/images/icon-192x192.png'),
-        cache.add('/assets/images/icon-512x512.png'),
-        cache.add('/manifest.json'),
-        cache.add('/offline.html')  // Добавляем страницу оффлайн
+      return cache.addAll([
+        '/offline.html'  // Только страница оффлайн
       ]).catch((err) => {
         console.error('Ошибка при кешировании:', err);
       });
@@ -24,27 +16,25 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Если ответ удачный, возвращаем его
+        // Если запрос успешный, возвращаем ответ
         if (response && response.status === 200) {
           return response;
         }
         // Если ошибка при запросе, проверяем кеш
         return caches.match(event.request).then((cachedResponse) => {
-          // Если в кеше есть ответ, возвращаем его
           if (cachedResponse) {
             return cachedResponse;
           }
-          // Если нет кешированного ответа, проверяем на запросы к страницам
+          // Если это запрос страницы и нет ответа, возвращаем оффлайн страницу
           if (event.request.mode === 'navigate') {
             return caches.match('/offline.html');  // Возвращаем страницу оффлайн
           }
-          // Если нет ответа и это не запрос страницы, возвращаем ошибку
+          // Для других типов запросов возвращаем ошибку или ничего
           return Promise.reject('No cached response or network response');
         });
       })
-      .catch((error) => {
-        console.error('Ошибка сети:', error);
-        // В случае ошибки сети возвращаем кешированную страницу оффлайн
+      .catch(() => {
+        // Если нет сети, возвращаем страницу оффлайн
         return caches.match('/offline.html');
       })
   );
@@ -64,4 +54,5 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+
 
