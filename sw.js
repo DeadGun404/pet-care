@@ -45,3 +45,38 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        if (!response || response.status !== 200) {
+          // Если ответ не удачный, проверяем кеш
+          return caches.match(event.request);
+        }
+        return response;
+      })
+      .catch(error => {
+        console.error('Ошибка сети:', error);
+        // В случае ошибки сети возвращаем кешированный ответ или страницу ошибки
+        return caches.match(event.request) || caches.match('/offline.html');
+      })
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Проверяем статус ответа
+        if (!response || response.status !== 200) {
+          return caches.match(event.request);
+        }
+        return response;
+      })
+      .catch(() => {
+        // Если нет сети, возвращаем оффлайн-страницу
+        return caches.match('/offline.html');
+      })
+  );
+});
