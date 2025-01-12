@@ -3,19 +3,22 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open('my-cache-v1').then((cache) => {
       console.log('Сайт кеширован');
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/register.html',
-        '/assets/css/styles.css',
-        '/assets/js/script.js',
-        '/assets/images/icon-192x192.png',
-        '/assets/images/icon-512x512.png',
-        '/manifest.json',
-      ]);
+      return Promise.all([
+        cache.add('/'),
+        cache.add('/index.html'),
+        cache.add('/register.html'),
+        cache.add('/assets/css/styles.css'),
+        cache.add('/assets/js/script.js'),
+        cache.add('/assets/images/icon-192x192.png'),
+        cache.add('/assets/images/icon-512x512.png'),
+        cache.add('/manifest.json')
+      ]).catch((err) => {
+        console.error('Ошибка при кешировании:', err);
+      });
     })
   );
 });
+
 
 self.addEventListener('fetch', (event) => {
   event.respondWith(
